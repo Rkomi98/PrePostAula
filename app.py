@@ -395,6 +395,40 @@ def _is_bracket(norm: str) -> tuple[bool, str, str]:
     return (True, m.group(1).strip(), m.group(2).strip()) if m else (False, "", "")
 
 
+def _looks_like_quality_column(
+    df: pd.DataFrame, col: str, norm: str, role_scores: dict[str, float], fuzzy_threshold: float
+) -> bool:
+    is_bracket, macro, micro = _is_bracket(norm)
+    if not is_bracket:
+        return False
+
+    def _has_token(text: str, tokens: tuple[str, ...]) -> bool:
+        return any(re.search(rf"\b{re.escape(token)}\b", text) for token in tokens)
+
+    fam_macro = _has_token(macro, ("familiarita", "familiarity", "conoscenza", "livello", "ai"))
+    bef_micro = _has_token(micro, ("prima", "before", "pre", "iniziale", "start"))
+    aft_micro = _has_token(micro, ("dopo", "after", "post", "finale", "fine", "end"))
+    if fam_macro and (bef_micro or aft_micro):
+        return False
+
+    sample = _non_empty_sample(df, col)
+    if len(sample) == 0:
+        return False
+
+    rating_ratio = sample.map(lambda raw: map_rating_label(raw) is not None).mean()
+    numeric_1_4_ratio = sample.map(lambda raw: safe_to_int(raw) is not None).mean()
+    low_cardinality = sample.nunique() <= max(6, len(sample) // 2 + 1)
+    quality_name_hint = any(
+        hint in macro for hint in ("qualit", "train", "didatt", "material", "logistic", "session")
+    )
+    best_role_score = max(role_scores.values())
+
+    if quality_name_hint and low_cardinality and max(rating_ratio, numeric_1_4_ratio) >= 0.6:
+        return True
+
+    return low_cardinality and max(rating_ratio, numeric_1_4_ratio) >= 0.85 and best_role_score < 0.9
+
+
 def detect_columns(df: pd.DataFrame, fuzzy_threshold: float = 0.4) -> dict[str, Any]:
     cols = [c for c in df.columns if c != "_source_file"]
     normalized = {c: normalize_col_name(c) for c in cols}
@@ -421,11 +455,11 @@ def detect_columns(df: pd.DataFrame, fuzzy_threshold: float = 0.4) -> dict[str, 
         }
         scores[col] = role_scores
 
-        best_role_score = max(role_scores.values())
-
-        if _is_bracket(norm)[0] and best_role_score < fuzzy_threshold:
+        if _looks_like_quality_column(df, col, norm, role_scores, fuzzy_threshold):
             quality_cols.append(col)
             continue
+
+        best_role_score = max(role_scores.values())
 
         if _is_open_text(df, col, norm) and best_role_score < fuzzy_threshold:
             open_text_cols.append(col)
