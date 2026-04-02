@@ -405,29 +405,31 @@ def detect_columns(df: pd.DataFrame, fuzzy_threshold: float = 0.4) -> dict[str, 
     for col in cols:
         norm = normalized[col]
 
-        if _is_bracket(norm)[0]:
-            quality_cols.append(col)
-            continue
-
-        if _is_open_text(df, col, norm):
-            open_text_cols.append(col)
-            continue
-
-        # Score by name first so strong role matches survive the open-text filter
+        # Score by name first so strong role matches survive the
+        # quality/open-text filters. Some survey schemas use square brackets
+        # for BEFORE/AFTER labels too, so bracketed columns are not always
+        # quality questions.
         fam = max(_kw_score(norm, _KW["familiarity"]), _fuzzy_best(norm, _KW["familiarity"]))
         bef = max(_kw_score(norm, _KW["before"]),      _fuzzy_best(norm, _KW["before"]))
         aft = max(_kw_score(norm, _KW["after"]),       _fuzzy_best(norm, _KW["after"]))
         tta = max(_kw_score(norm, _KW["tta"]),         _fuzzy_best(norm, _KW["tta"]))
         cnf = max(_kw_score(norm, _KW["confidence"]),  _fuzzy_best(norm, _KW["confidence"]))
-        best = max(fam * bef if fam else bef * 0.3,
-                   fam * aft if fam else aft * 0.3,
-                   tta, cnf)
-
-        scores[col] = {
+        role_scores = {
             "before": fam * bef if fam else bef * 0.3,
             "after":  fam * aft if fam else aft * 0.3,
             "tta": tta, "confidence": cnf,
         }
+        scores[col] = role_scores
+
+        best_role_score = max(role_scores.values())
+
+        if _is_bracket(norm)[0] and best_role_score < fuzzy_threshold:
+            quality_cols.append(col)
+            continue
+
+        if _is_open_text(df, col, norm) and best_role_score < fuzzy_threshold:
+            open_text_cols.append(col)
+            continue
 
     eligible = [c for c in cols if c not in open_text_cols and c not in quality_cols]
 
