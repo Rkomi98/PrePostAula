@@ -2,7 +2,7 @@
 """
 Run:  streamlit run app.py
 
-.env keys (any one is enough for AI insights):
+Secrets for AI insights (local or cloud):
     OPENAI_API_KEY      – used via datapizza-ai OpenAIClient
     ANTHROPIC_API_KEY   – fallback
 """
@@ -91,7 +91,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "manual_override_hint": "Seleziona manualmente se il rilevamento automatico è incerto",
         "none_option": "(nessuna)",
         "open_text_cols_found": "Colonne testo libero rilevate",
-        "ai_config_missing": "Imposta OPENAI_API_KEY o ANTHROPIC_API_KEY nel file .env per generare insights.",
+        "ai_config_missing": "Imposta OPENAI_API_KEY o ANTHROPIC_API_KEY in `.env` oppure in `.streamlit/secrets.toml` per generare insights.",
         "insights_open_question": "Domanda aperta",
         "insights_summary": "Sintesi esecutiva",
         "insights_bullets": "Insights principali",
@@ -169,7 +169,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "manual_override_hint": "Select manually if auto-detection is uncertain",
         "none_option": "(none)",
         "open_text_cols_found": "Free-text columns detected",
-        "ai_config_missing": "Set OPENAI_API_KEY or ANTHROPIC_API_KEY in your .env file to generate AI insights.",
+        "ai_config_missing": "Set OPENAI_API_KEY or ANTHROPIC_API_KEY in `.env` or `.streamlit/secrets.toml` to generate AI insights.",
         "insights_open_question": "Open question",
         "insights_summary": "Executive summary",
         "insights_bullets": "Key insights",
@@ -190,6 +190,21 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 
 def T(key: str, lang: str) -> str:
     return TRANSLATIONS.get(lang, TRANSLATIONS["en"]).get(key, key)
+
+
+def get_secret(name: str) -> str | None:
+    try:
+        if name in st.secrets:
+            value = st.secrets[name]
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    except Exception:
+        pass
+
+    value = os.getenv(name)
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -751,8 +766,8 @@ Output only valid JSON, no markdown fences."""
 def generate_insights(
     df: pd.DataFrame, open_text_cols: list[str], lang: str
 ) -> list[dict[str, Any]]:
-    oai_key = os.getenv("OPENAI_API_KEY")
-    ant_key = os.getenv("ANTHROPIC_API_KEY")
+    oai_key = get_secret("OPENAI_API_KEY")
+    ant_key = get_secret("ANTHROPIC_API_KEY")
     results = []
 
     for col in open_text_cols:
@@ -1188,7 +1203,7 @@ def main() -> None:
     # ── AI Insights ───────────────────────────────────────────────────────
     st.markdown("---")
     st.subheader(T("insights_title", lang))
-    has_api = bool(os.getenv("OPENAI_API_KEY") or os.getenv("ANTHROPIC_API_KEY"))
+    has_api = bool(get_secret("OPENAI_API_KEY") or get_secret("ANTHROPIC_API_KEY"))
 
     if not has_api:
         st.info(T("ai_config_missing", lang))

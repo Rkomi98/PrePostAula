@@ -1,39 +1,112 @@
+<div align="center">
+
 # Training Feedback Survey Analyser
 
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/downloads/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![Pandas](https://img.shields.io/badge/pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)](https://pandas.pydata.org/)
-[![Plotly](https://img.shields.io/badge/Plotly-239120?style=for-the-badge&logo=plotly&logoColor=white)](https://plotly.com/python/)
-[![RapidFuzz](https://img.shields.io/badge/RapidFuzz-5A67D8?style=for-the-badge)](https://github.com/maxbachmann/RapidFuzz)
-[![OpenPyXL](https://img.shields.io/badge/OpenPyXL-217346?style=for-the-badge&logo=microsoft-excel&logoColor=white)](https://openpyxl.readthedocs.io/)
-![CSV · XLSX](https://img.shields.io/badge/input-CSV%20%7C%20XLSX-00A4EF?style=for-the-badge)
-![AI insights](https://img.shields.io/badge/AI-datapizza--ai%20%C2%B7%20OpenAI%20%C2%B7%20Anthropic-6366F1?style=for-the-badge)
+<p>
+  Clean, bilingual Streamlit dashboard for analysing pre/post training survey exports from Microsoft Forms and similar tools.
+</p>
 
-Production-ready Streamlit app for analysing post-training feedback surveys exported from Microsoft Forms or similar tools.
+<p>
+  <img src="https://img.shields.io/badge/Python-3.12%2B-111827?style=flat&logo=python&logoColor=white" alt="Python 3.12+">
+  <img src="https://img.shields.io/badge/Streamlit-App-EA580C?style=flat&logo=streamlit&logoColor=white" alt="Streamlit app">
+  <img src="https://img.shields.io/badge/Input-CSV%20%7C%20XLSX-0F766E?style=flat" alt="CSV and XLSX input">
+  <img src="https://img.shields.io/badge/Charts-Plotly-1D4ED8?style=flat&logo=plotly&logoColor=white" alt="Plotly charts">
+  <img src="https://img.shields.io/badge/Export-Excel%20%2B%20CSV-166534?style=flat" alt="Excel and CSV export">
+  <img src="https://img.shields.io/badge/AI-OpenAI%20%7C%20Anthropic-6D28D9?style=flat" alt="AI insights">
+</p>
+
+<p>
+  <a href="#quick-start">Quick start</a> •
+  <a href="#deploy-on-streamlit-community-cloud">Deploy</a> •
+  <a href="#features">Features</a> •
+  <a href="#excel-report-sheets">Excel output</a>
+</p>
+
+</div>
+
+> Built for survey teams who need a fast way to merge files, auto-detect columns, validate training quality, and export stakeholder-ready outputs without rewriting survey schemas every time.
+
+## Highlights
+
+| Detect | Analyse | Explain |
+|---|---|---|
+| Keyword + fuzzy heuristics map columns even when survey labels change. | Sankey transitions, macro/micro quality views, and time-to-apply tables come out in one flow. | Optional AI summaries turn open text into concise findings with traceability. |
+
+| Export | Local-first | Team-friendly |
+|---|---|---|
+| Download CSV slices, Flourish-ready extracts, and a multi-sheet Excel workbook. | Portable launcher creates the virtualenv and installs dependencies automatically. | English and Italian UI make the app easier to share across mixed teams. |
 
 ---
 
 ## Quick start
 
+The easiest path for you or anyone who forks this repo is the portable launcher:
+
 ```bash
-# 1. Create and activate a virtual environment
-python -m venv .venv
-source .venv/bin/activate        # macOS/Linux
-# .venv\Scripts\activate         # Windows
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. (Optional) set an API key for AI insights
-export OPENAI_API_KEY="sk-..."          # or
-export ANTHROPIC_API_KEY="sk-ant-..."   # or
-export DATAPIZZA_API_KEY="dp-..."
-
-# 4. Run
-streamlit run app.py
+# 1. Run the app with Python 3.12+
+python3.12 run_app.py
+# Windows: py -3.12 run_app.py
 ```
 
 Open http://localhost:8501 in your browser.
+
+`run_app.py` is path-independent: it creates `.venv` if missing, installs `requirements.txt` when needed, and launches Streamlit through the virtualenv's interpreter. That means forks and clones can live in any folder name without breaking `pip` or `streamlit` entrypoints.
+
+### Manual setup
+
+If you prefer the classic workflow, this also works:
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate        # macOS/Linux
+# .venv\Scripts\activate         # Windows
+python -m pip install -r requirements.txt
+python -m streamlit run app.py
+```
+
+### Optional AI setup
+
+For local development, create `.streamlit/secrets.toml` from [.streamlit/secrets.toml.example](.streamlit/secrets.toml.example) or use a local `.env`.
+
+```toml
+OPENAI_API_KEY = "sk-..."
+# or
+ANTHROPIC_API_KEY = "sk-ant-..."
+```
+
+---
+
+## Deploy on Streamlit Community Cloud
+
+This repo is already structured in the right way for Community Cloud:
+
+- `app.py` is the entrypoint in the repository root.
+- `requirements.txt` is in the repository root.
+- The app now supports both local `.env` values and Streamlit `st.secrets`.
+
+### Recommended deploy flow
+
+1. Push the repository to GitHub.
+2. Open Streamlit Community Cloud and click `Create app`.
+3. Select your repository, branch, and set the main file path to `app.py`.
+4. Open `Advanced settings` and choose Python `3.12` before deploying.
+5. In the `Secrets` field, paste the contents of your local `.streamlit/secrets.toml` if you want AI insights enabled.
+6. Click `Deploy`.
+
+### If Streamlit says you can't publish
+
+Check these first:
+
+- The repo must be on GitHub, because Community Cloud deploys from GitHub repositories.
+- If the repo is private, Streamlit's docs say the developer needs admin permissions on that repository to deploy from it.
+- Make sure you are in the correct Streamlit workspace for the GitHub user or organization that owns the repo.
+- If AI is enabled, add `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in Community Cloud secrets; otherwise the app still runs, but AI insights stay disabled.
+- If build logs show a dependency failure, verify `requirements.txt` is complete and that the app is launched from the repo root.
+
+### Local secrets vs cloud secrets
+
+- Local: `.streamlit/secrets.toml` or `.env`
+- Cloud: paste the same TOML content into the app's `Advanced settings` -> `Secrets`
 
 ---
 
@@ -90,12 +163,11 @@ Unexpected labels are listed in the Anomalies panel rather than silently dropped
 
 ## AI Insights
 
-Set **one** of these environment variables before running:
+Set **one** of these secrets before running:
 
 ```
-DATAPIZZA_API_KEY   # preferred (datapizza-ai package)
-OPENAI_API_KEY      # fallback (gpt-4o-mini)
-ANTHROPIC_API_KEY   # fallback (claude-haiku)
+OPENAI_API_KEY      # OpenAI summaries via datapizza-ai
+ANTHROPIC_API_KEY   # Anthropic fallback
 ```
 
 Per open-text question the app generates:
